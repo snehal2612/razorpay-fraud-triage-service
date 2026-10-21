@@ -277,25 +277,34 @@ The selected threshold prioritizes fraud recall but also flags legitimate transa
 
 ## Part C results
 
-### Retrieval
+### Policy retrieval
 
-- Policy retrieval checks passed: **8/8**
-- Configured minimum similarity score: **0.45**
-- Highest out-of-scope similarity observed: **0.4251**
-- Lowest in-scope similarity observed: **0.4862**
+The retrieval system was evaluated on 10 queries: eight in-scope queries and two out-of-scope queries.
 
-The observed scores are separated by the configured retrieval threshold for the tested examples.
+- In-scope top-1 retrieval hits: **8/8**.
+- Minimum acceptance score: **0.45**.
+- Lowest in-scope retrieval score: **0.4862**.
+- Highest out-of-scope retrieval score: **0.4251**.
+- Both out-of-scope queries were rejected because their scores did not meet the acceptance threshold.
 
-### Case-note generation and validation
+The tested in-scope queries retrieved their expected policies, covering payment amount and new-device risk, UPI velocity, unusual location and time, unauthorised payments, young accounts, and manual-review policy.
 
-- Total mock LLM calls: **19**
-- Successful first-call validations: **3**
-- Retry recoveries: **6**
-- Safe defaults: **1**
-- Guardrail overrides: **1**
-- Simulated outage: `ConnectionError` propagated as expected
+### Case-note generation and retries
 
-Case notes are checked against the required schema and allowed enum values. Invalid responses can be retried, while unsafe or unavailable outcomes are handled without silently treating them as successful approvals.
+The case-note scenarios produced the following results:
+
+- Total model calls: **19**.
+- Valid first-call responses: **3**.
+- Scenarios recovered by retry: **6**.
+- Safe defaults: **1**.
+- Guardrail overrides: **1**.
+- The simulated language-model service outage propagated as a `ConnectionError`.
+
+Scenario S5 (`T900005`) exhausted its retries and used a safe default with the final action `hold_for_review`. Scenario S6 (`T900006`) triggered a guardrail override and ended with `hold_for_review`.
+
+### Limitations
+
+Retrieval scores are relevance signals, not guarantees that a policy is correct for every query. The observed separation between the lowest in-scope score and the highest out-of-scope score is limited, so additional queries and threshold validation would be needed before production use. Retry recovery and safe-default behavior were tested with the supplied scenarios and simulated service behavior; real production outages may differ.
 
 ## Part D results
 
