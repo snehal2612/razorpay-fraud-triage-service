@@ -201,32 +201,81 @@ After one-hot encoding the three categorical columns, the model input contains 2
 
 ## Part B results
 
+## Part B results
+
 ### Model training and validation
 
 - Training rows: **3,551**
 - Validation rows: **1,184**
 - Test rows: **1,184**
 - Fraud cases in training, validation, and test sets: **220, 73, and 73**, respectively.
-- Missing-value imputation used the training-set median amount/distance statistics as appropriate.
-- Oversampling was applied to the training data only.
-- Grid search selected a Random Forest configuration with `max_depth=None` and `min_samples_leaf=5`.
-- Best cross-validation F1: **0.465**
-- Selected decision threshold: **0.40**
+- Training-set distance median: **12.6**.
+- Oversampled training rows: **6,662**. Oversampling was applied to training data only.
+- The final feature matrix contains **26 features**.
+- Balanced Logistic Regression cross-validation F1: **0.402 ± 0.015**.
+- Untuned Random Forest cross-validation F1: **0.453 ± 0.052**.
+- Grid search evaluated **12 combinations** and selected `max_depth=None` and `min_samples_leaf=5`.
+- Best mean cross-validation F1: **0.465**.
+- Selected decision threshold: **0.40**.
 
-### Model evaluation
+### Class imbalance comparison
 
-- Test F1 score: **0.413**
-- Test transactions flagged at the selected threshold: **203**
-- Clean validation F1: **0.441**
-- Leaky validation F1: **0.797**
+| Model | Precision | Recall | F1 |
+|---|---:|---:|---:|
+| Plain Logistic Regression | 0.625 | 0.342 | 0.442 |
+| Balanced Logistic Regression | 0.252 | 0.781 | 0.381 |
+| Oversampled Logistic Regression | 0.257 | 0.781 | 0.386 |
 
-The higher leaky validation score illustrates how including information that would not legitimately be available at prediction time can make evaluation misleading.
+### Validation threshold analysis
 
-### Feature handling
+| Threshold | Precision | Recall | F1 | Flagged |
+|---:|---:|---:|---:|---:|
+| 0.1 | 0.111 | 0.973 | 0.200 | 638 |
+| 0.2 | 0.158 | 0.945 | 0.271 | 437 |
+| 0.3 | 0.209 | 0.863 | 0.336 | 302 |
+| 0.4 | 0.272 | 0.712 | 0.394 | 191 |
+| 0.5 | 0.352 | 0.589 | 0.441 | 122 |
+| 0.6 | 0.507 | 0.507 | 0.507 | 73 |
+| 0.7 | 0.528 | 0.260 | 0.349 | 36 |
+| 0.8 | 0.778 | 0.192 | 0.308 | 18 |
+| 0.9 | 0.800 | 0.055 | 0.103 | 5 |
 
-The model uses numeric and engineered features alongside one-hot encoded merchant category, city, and payment mode features. Identifiers, the target label, and `chargeback_filed` are excluded from model inputs.
+### Final test evaluation
 
-The final feature matrix contains **26 features**.
+- Test precision: **0.281**.
+- Test recall: **0.781**.
+- Test F1 score: **0.413**.
+- Confusion matrix: **TN=965, FP=146, FN=16, TP=57**.
+- Test transactions flagged at the selected threshold: **203**.
+- Legitimate payments flagged per fraud caught: **2.561**.
+- Frauds missed: **16**.
+
+At threshold 0.40, the model caught 57 fraud cases but also flagged 146 legitimate payments as false positives. This reflects a trade-off between detecting fraud and avoiding unnecessary transaction reviews.
+
+### Leakage experiment
+
+- Clean tuned-forest validation F1: **0.441**.
+- Leaky-forest validation F1: **0.797**.
+
+The higher leaky validation score illustrates how including information unavailable at prediction time can make evaluation misleading. The target label, identifiers, and `chargeback_filed` are excluded from model inputs.
+
+### Top five feature importances
+
+| Feature | Importance |
+|---|---:|
+| `amount_vs_avg_ratio` | 0.269996 |
+| `txn_count_last_24h` | 0.177916 |
+| `amount_inr` | 0.133949 |
+| `account_age_days` | 0.083521 |
+| `distance_from_home_km` | 0.070884 |
+
+### Reusable model builder
+
+The `build_final_model()` function returns a dictionary containing `model`, `columns`, `median`, and `threshold`. The verified output contains **26 columns**, a training distance median of **12.6**, and a threshold of **0.4**.
+
+### Limitations
+
+The selected threshold prioritizes fraud recall but also flags legitimate transactions. The validation and test metrics reflect this dataset and split and do not guarantee equivalent real-world performance. The leakage experiment demonstrates why post-outcome information must not be used as a prediction feature.
 
 ## Part C results
 
