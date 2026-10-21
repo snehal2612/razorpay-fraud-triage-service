@@ -81,32 +81,123 @@ Useful API endpoints:
 
 ## Part A results
 
-### Data audit and cleaning
+### 1. Raw data audit
 
-- Raw dataset size: **6,090 rows × 14 columns**
-- Duplicate rows removed: **90**
-- Rows after deduplication: **6,000**
-- Rows with missing amount removed: **76**
-- Rows with missing distance removed: **193**
-- Out-of-range rows removed: **5**
-- Final cleaned dataset: **5,919 rows**
-- Fraud cases in cleaned data: **366 (6.18%)**
+| Audit item | Result |
+|---|---:|
+| Raw rows | 6,090 |
+| Raw columns | 14 |
+| Exact duplicate rows | 90 |
+| Missing `amount_inr` after deduplication | 76 |
+| Missing `distance_from_home_km` after deduplication | 193 |
+| Out-of-range amounts after deduplication | 5 |
+| Distinct raw `merchant_category` spellings | 24 |
+| Distinct raw `city` spellings | 24 |
 
-### Data quality observations
+### 2. Cleaning results
 
-- Merchant category spelling variants were normalized.
-- The dataset contains six cities.
-- Missing distance values were handled during cleaning.
-- Engineered features include `amount_vs_avg_ratio`, `is_night`, and `high_value`.
-- `chargeback_filed` was excluded from model features to avoid target leakage.
+| Checkpoint | Result |
+|---|---:|
+| Rows after cleaning | 5,919 |
+| Duplicate rows remaining | 0 |
+| Missing distances remaining | 191 |
+| Minimum amount (INR) | 141.37 |
+| Maximum amount (INR) | 105,883.95 |
 
-### Important findings
+Missing `distance_from_home_km` values are left unfilled in Part A because the imputation median must be learned from training rows only to avoid validation and test data leakage.
 
-- A majority-class-only classifier would achieve approximately **93.82% accuracy**, but **0% fraud recall**.
-- Among rows with `chargeback_filed = 1`, 304 out of 373 were fraud cases.
-- Among rows with `chargeback_filed = 0`, 62 out of 5,546 were fraud cases.
+### 3. Merchant category, city and payment-mode counts
 
-These findings demonstrate why accuracy alone is not a sufficient metric for fraud detection.
+**Merchant category counts**
+
+| Merchant category | Rows |
+|---|---:|
+| Grocery | 1,406 |
+| Food Delivery | 1,326 |
+| Fashion | 976 |
+| Electronics | 845 |
+| Utilities | 685 |
+| Travel | 681 |
+
+**City counts**
+
+| City | Rows |
+|---|---:|
+| Bengaluru | 1,033 |
+| Chennai | 1,025 |
+| Kolkata | 996 |
+| Delhi | 979 |
+| Pune | 944 |
+| Mumbai | 942 |
+
+**Payment-mode counts**
+
+| Payment mode | Rows |
+|---|---:|
+| UPI | 3,221 |
+| Card | 1,450 |
+| NetBanking | 731 |
+| Wallet | 517 |
+
+### 4. Feature engineering checkpoints
+
+The `add_features(df)` function adds these three features:
+
+- `amount_vs_avg_ratio` = `amount_inr / avg_amount_30d_inr`
+- `is_night` = 1 when `hour_of_day` is 5 or less; otherwise 0
+- `high_value` = 1 when `amount_inr` is greater than 50,000; otherwise 0
+
+| Feature checkpoint | Result |
+|---|---:|
+| Number of features added | 3 |
+| Sum of `is_night` | 365 |
+| Sum of `high_value` | 17 |
+| Maximum `amount_vs_avg_ratio` | 13.11 |
+
+Both `clean_transactions()` and `add_features()` passed the one-row and input-immutability checks.
+
+### 5. Fraud rate and why accuracy misleads
+
+| Metric | Result |
+|---|---:|
+| Fraud rows | 366 |
+| Cleaned rows | 5,919 |
+| Fraud rate | 6.18% |
+| Never-fraud rule accuracy | 93.82% |
+| Never-fraud rule recall | 0.00% |
+
+The never-fraud rule achieves 93.82% accuracy because most transactions are legitimate, but it misses every fraud case. Accuracy alone is therefore misleading for this imbalanced fraud-detection problem; recall and F1 also need to be considered.
+
+### 6. Chargeback leakage audit
+
+| `chargeback_filed` | Total rows | Fraud rows |
+|---:|---:|---:|
+| 0 | 5,546 | 62 |
+| 1 | 373 | 304 |
+
+The model excludes `chargeback_filed`, `txn_id`, `customer_id` and `is_fraud` from its inputs. `chargeback_filed` can reflect a dispute raised after settlement, so using it would leak information unavailable at prediction time. The transaction and customer identifiers are identifiers rather than legitimate behavioural predictors, and `is_fraud` is the target being predicted.
+
+### 7. Model input columns before one-hot encoding
+
+The 13 columns passed into the feature-encoding stage are:
+
+```text
+merchant_category
+city
+payment_mode
+amount_inr
+hour_of_day
+txn_count_last_24h
+avg_amount_30d_inr
+distance_from_home_km
+is_new_device
+account_age_days
+amount_vs_avg_ratio
+is_night
+high_value
+```
+
+After one-hot encoding the three categorical columns, the model input contains 26 columns.
 
 ## Part B results
 
