@@ -310,6 +310,8 @@ Retrieval scores are relevance signals, not guarantees that a policy is correct 
 
 ### API smoke tests
 
+**Overall result: 11/11 PASS**
+
 ### Individual API smoke-test results
 
 | Test | Endpoint | Expected status | Actual status | Result |
