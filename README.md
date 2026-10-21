@@ -310,6 +310,24 @@ Retrieval scores are relevance signals, not guarantees that a policy is correct 
 
 ### API smoke tests
 
+### Individual API smoke-test results
+
+| Test | Endpoint | Expected status | Actual status | Result |
+|---|---|---:|---:|---|
+| Q1 — Health check | `GET /health` | 200 | 200 | PASS |
+| Q2 — Benign transaction score | `POST /score` | 200 | 200 | PASS |
+| Q3 — Risky transaction score | `POST /score` | 200 | 200 | PASS |
+| Q4 — Large-payment guardrail | `POST /score` | 200 | 200 | PASS |
+| Q5 — Invalid amount | `POST /score` | 400 | 400 | PASS |
+| Q6 — Missing required field | `POST /score` | 422 | 422 | PASS |
+| Q7 — Case-note retry recovery | `POST /case` | 200 | 200 | PASS |
+| Q8 — Safe default after failures | `POST /case` | 200 | 200 | PASS |
+| Q9 — Simulated case-note service outage | `POST /case` | 503 | 503 | PASS |
+| Q10 — Benign case request | `POST /case` | 200 | 200 | PASS |
+| Q11 — Out-of-scope policy query | `POST /case` | 200 | 200 | PASS |
+
+All 11 smoke tests passed, including validation errors, retry recovery, safe-default handling, simulated outage handling, and out-of-scope policy handling.
+
 **Overall result: 11/11 PASS**
 
 | Test group | Passed | Total |
