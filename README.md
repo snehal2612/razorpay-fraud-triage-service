@@ -201,8 +201,6 @@ After one-hot encoding the three categorical columns, the model input contains 2
 
 ## Part B results
 
-## Part B results
-
 ### Model training and validation
 
 - Training rows: **3,551**
