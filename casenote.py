@@ -181,12 +181,13 @@ def run_case(
             "policy_id": policy_id,
         }
 
-    # Business guardrail: high fraud probability must not be approved.
+
+   # Business guardrail: flagged transactions must not be approved.
     guardrail_override = False
 
     if (
         note["recommended_action"] == "approve"
-        and fraud_probability >= 0.5
+        and fraud_probability >= 0.4
     ):
         note["recommended_action"] = "hold_for_review"
         guardrail_override = True
